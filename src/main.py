@@ -3,12 +3,13 @@ import os, sys
 sys.path.insert(0, os.path.abspath(os.path.join(__file__, '..', '..')))
 
 import cv2
-
-
 from src.capture import KeypointExtractor
 from src.recorder import ClipRecorder
 from training.model import GestureClassifier
 
+
+# Usar solo features de manos: 2 manos ×21 landmarks ×4 valores = 168 dims
+hand_dims = 2 * 21 * 4
 
 def main():
     # Definir rutas absolutas
@@ -50,31 +51,14 @@ def main():
         kp = extractor.extract(frame)
         if mode == 'translation':
             try:
-                # Asegurar forma 2D y obtener probabilidades
-                # Seleccionar mismas features usadas en entrenamiento (222 dims)
-                hand_dims = 2 * 21 * 4  # 168 dims manos
-                IMPORTANT_IDXS = [1, 4, 2, 5, 10, 33, 133, 55, 65, 93, 199, 61, 291, 285, 295, 323, 263, 362]
-                face_indices = []
-                for fi in IMPORTANT_IDXS:
-                    base = hand_dims + fi * 3
-                    face_indices.extend([base, base + 1, base + 2])
-                indices = list(range(hand_dims)) + face_indices
-                feat_sel = kp[indices]
-                feat = feat_sel.reshape(1, -1)
-                
-                probas = classifier.predict_proba(feat)[0]
+                # Usar solo dims de manos
+                feat = kp[:hand_dims].reshape(1, -1)
                 letter = classifier.predict(feat)[0]
-                # Mostrar letra con su confianza máxima en porcentaje
-                treshold = 0.8
-                confidence = probas.max() * 100
-                if confidence < treshold or len(classifier.pipeline.classes_) < 2:
-                    display_text = '?'
-                else:
-                    display_text = f"{letter} ({confidence:.1f}%)"
             except Exception as e:
-                print(f"Error en predicción: {e}")
-                display_text = '?'
-            cv2.putText(frame, display_text, (50, 50), cv2.FONT_HERSHEY_SIMPLEX,
+                print(f"Error en predicción (solo manos): {e}")
+                letter = '?'
+            # Mostrar letra reconocida
+            cv2.putText(frame, str(letter), (50, 50), cv2.FONT_HERSHEY_SIMPLEX,
                         1.5, (0, 255, 0), 2)
         elif mode == 'record':
             recorder.add_frame(frame)

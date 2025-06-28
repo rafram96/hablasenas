@@ -50,14 +50,6 @@ def analyze_frame(arr: np.ndarray, frame_idx: int):
         for idx, (x, y, z, p) in enumerate(hand):
             presence = '✔' if p else '✖'
             print(f"    [{idx:02d}] x={x:.3f}, y={y:.3f}, z={z:.3f} {presence}")
-    # Cara
-    face = get_face_landmarks(frame, maxHands=2)
-    print("\n▶ Face Landmarks (índices clave):")
-    # índices ampliados: puente nariz, punta nariz, frente, ojos internos, cejas, pómulos, boca, mentón
-    important_idxs = [1, 4, 2, 5, 10, 33, 133, 55, 65, 93, 199, 61, 291, 285, 295, 323]
-    for idx in important_idxs:
-        x, y, z = face[idx]
-        print(f"    [idx {idx:03d}] x={x:.3f}, y={y:.3f}, z={z:.3f}")
     print("="*50 + "\n")
 
 def analyze_specific_frame(npy_path: str, frame_idx: int):

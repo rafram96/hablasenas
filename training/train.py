@@ -38,18 +38,13 @@ def load_dataset(features_dir: str):
             print(f"Advertencia: no existe {npy_path}, se omite.")
             continue
         arr = np.load(npy_path)
-        # Filtrar features: solo landmarks de manos y puntos faciales clave
+        # Solo dimensions de manos: primer block de hand_dims
         hand_dims = 2 * 21 * 4  # 168 dims de manos
-        IMPORTANT_IDXS = [1, 4, 2, 5, 10, 33, 133, 55, 65, 93, 199, 61, 291, 285, 295, 323, 263, 362]
-        # Construir lista de índices: manos (0:hand_dims) + cara importante
-        face_indices = []
-        for fi in IMPORTANT_IDXS:
-            base = hand_dims + fi * 3
-            face_indices.extend([base, base + 1, base + 2])
-        indices = list(range(hand_dims)) + face_indices
-        # Aplicar selección de columnas
-        arr = arr[:, indices]
-        # arr.shape ahora = (num_samples, hand_dims + len(IMPORTANT_IDXS)*3)
+        if arr.shape[1] >= hand_dims:
+            arr = arr[:, :hand_dims]
+        else:
+            print(f"Advertencia: arr.shape[1]={arr.shape[1]} < {hand_dims}, usando todas las dimensiones disponibles.")
+        # arr.shape ahora = (num_samples, hand_dims)
         for sample in arr:
             X_list.append(sample)
             y_list.append(label)

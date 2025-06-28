@@ -34,17 +34,21 @@ def main(
     samples = []
     print(f"Buscando {max_samples} frames con más de {threshold*100:.0f}% de detección...")
 
+    # Definir dims de manos para solo capturar esas features
+    hand_dims = 2 * 21 * 4
     while len(samples) < max_samples:
         ret, frame = cap.read()
         if not ret:
             break
         kp = extractor.extract(frame)
-        ratio = np.count_nonzero(kp) / kp.size
+        # Solo evaluar ratio en dims de manos
+        kp_hand = kp[:hand_dims]
+        ratio = np.count_nonzero(kp_hand) / kp_hand.size
         cv2.putText(frame, f"Ratio: {ratio:.2f}", (10,30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 2)
         cv2.imshow('Test Pipeline', frame)
         key = cv2.waitKey(1) & 0xFF
         if ratio >= threshold:
-            samples.append(kp)
+            samples.append(kp_hand)
             print(f"Frame {len(samples)}/{max_samples} guardado (ratio={ratio:.2f})")
         if key == ord('q'):
             break
@@ -56,6 +60,7 @@ def main(
         print("No se capturaron frames válidos.")
         return
 
+    # Solo manos: samples ya tienen forma (n_frames, hand_dims)
     arr = np.stack(samples, axis=0)
     # Confirmar si se desea descartar la toma antes de guardar
     choice = input("¿Desea descartar esta toma? Presione 'q' para descartar o ENTER para guardar: ")
