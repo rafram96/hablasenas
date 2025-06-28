@@ -1,7 +1,7 @@
 import cv2
 from capture import KeypointExtractor
-from src.recorder import ClipRecorder
-from model import GestureClassifier
+from recorder import ClipRecorder
+from training.model import GestureClassifier
 
 
 def main():
