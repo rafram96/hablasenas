@@ -51,11 +51,21 @@ def main():
         if mode == 'translation':
             try:
                 # Asegurar forma 2D y obtener probabilidades
-                feat = kp.reshape(1, -1)
+                # Seleccionar mismas features usadas en entrenamiento (222 dims)
+                hand_dims = 2 * 21 * 4  # 168 dims manos
+                IMPORTANT_IDXS = [1, 4, 2, 5, 10, 33, 133, 55, 65, 93, 199, 61, 291, 285, 295, 323, 263, 362]
+                face_indices = []
+                for fi in IMPORTANT_IDXS:
+                    base = hand_dims + fi * 3
+                    face_indices.extend([base, base + 1, base + 2])
+                indices = list(range(hand_dims)) + face_indices
+                feat_sel = kp[indices]
+                feat = feat_sel.reshape(1, -1)
+                
                 probas = classifier.predict_proba(feat)[0]
                 letter = classifier.predict(feat)[0]
                 # Mostrar letra con su confianza máxima en porcentaje
-                treshold = 0.6 
+                treshold = 0.8
                 confidence = probas.max() * 100
                 if confidence < treshold or len(classifier.pipeline.classes_) < 2:
                     display_text = '?'
