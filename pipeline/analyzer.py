@@ -87,7 +87,15 @@ def analyze_npy(npy_path: str, report_json: bool = True):
         'global_non_zero_ratio': round(float(np.count_nonzero(arr) / arr.size), 4)
     }
     if report_json:
-        report_path = os.path.splitext(npy_path)[0] + '_report.json'
+        # Determinar etiqueta y ruta de reportes al mismo nivel de 'features'
+        label = os.path.basename(os.path.dirname(npy_path))
+        # Carpeta 'data/reports/<label>'
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+        reports_dir = os.path.join(project_root, 'data', 'reports', label)
+        os.makedirs(reports_dir, exist_ok=True)
+        # Nombre del reporte
+        base = os.path.splitext(os.path.basename(npy_path))[0]
+        report_path = os.path.join(reports_dir, f"{base}_report.json")
         with open(report_path, 'w', encoding='utf-8') as jf:
             json.dump(report, jf, indent=2)
         print(f"✅ Reporte global guardado en: {report_path}")

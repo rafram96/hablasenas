@@ -1,19 +1,34 @@
 import os
+import time
 import sys
 import cv2
 import numpy as np
 import json
+from src.capture import KeypointExtractor
 
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+# El directorio raíz del proyecto es el padre directo de pipeline
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, project_root)
 
-from src.capture import KeypointExtractor
+
 
 
 def main(
     max_samples: int = 100,
     threshold: float = 0.2
 ):
+    # Pedir etiqueta para las muestras
+    label = input("Ingrese etiqueta (letra/palabra) o ENTER para salir: ")
+    # Normalizar etiqueta a minúsculas
+    label = label.lower()
+    if not label:
+        print("Etiqueta no ingresada, cancelando extracción.")
+        return
+    # Crear carpeta por etiqueta en data/features
+    label_dir = os.path.join(project_root, 'data', 'features', label)
+    os.makedirs(label_dir, exist_ok=True)
+    # Timestamp para nombres de archivo
+    timestamp = time.strftime('%Y%m%d_%H%M%S')
     cap = cv2.VideoCapture(0)
     extractor = KeypointExtractor(mode=True, maxHands=2, detectionCon=0.2, trackCon=0.2)
     samples = []
@@ -42,26 +57,45 @@ def main(
         return
 
     arr = np.stack(samples, axis=0)
-    out_dir = os.path.join(project_root, 'test_output')
-    os.makedirs(out_dir, exist_ok=True)
-    path_npy = os.path.join(out_dir, 'samples.npy')
+    # Guardar archivos en carpeta de la etiqueta
+    npy_name = f"{label}_{timestamp}.npy"
+    json_name = f"{label}_{timestamp}_summary.json"
+    path_npy = os.path.join(label_dir, npy_name)
     np.save(path_npy, arr)
     print(f"Guardados {arr.shape[0]} vectores en {path_npy}, shape={arr.shape}")
 
     nz = int(np.count_nonzero(arr))
     total = int(arr.size)
     global_ratio = nz / total
+    # Diccionario de resumen con claves en español
     summary = {
-        'num_samples': arr.shape[0],
-        'features_shape': list(arr.shape),
-        'global_non_zero': [nz, total],
-        'global_non_zero_ratio': round(global_ratio, 4),
-        'per_sample_ratio': [round(np.count_nonzero(sample)/sample.size, 4) for sample in samples]
+        'nombre_archivo': npy_name,
+        'num_muestras': arr.shape[0],
+        'forma_caracteristicas': list(arr.shape),
+        'no_ceros_global': [nz, total],
+        'ratio_no_ceros_global': round(global_ratio, 4)*100,
+        'ratio_no_ceros_por_muestra': [round(np.count_nonzero(sample)/sample.size, 4)*100 for sample in samples]
     }
-    json_path = os.path.join(out_dir, 'samples.json')
+    json_path = os.path.join(label_dir, json_name)
     with open(json_path, 'w', encoding='utf-8') as jf:
         json.dump(summary, jf, indent=2)
     print(f"Guardado resumen en: {json_path}")
+    # Actualizar labels.json automáticamente
+    features_root = os.path.join(project_root, 'data', 'features')
+    labels_file = os.path.join(features_root, 'labels.json')
+    labels_list = []
+    if os.path.isfile(labels_file):
+        with open(labels_file, 'r', encoding='utf-8') as lf:
+            try:
+                labels_list = json.load(lf)
+            except json.JSONDecodeError:
+                labels_list = []
+    # Agregar nueva entrada
+    rel_path = os.path.relpath(path_npy, project_root)
+    labels_list.append({'filename': rel_path, 'label': label})
+    with open(labels_file, 'w', encoding='utf-8') as lf:
+        json.dump(labels_list, lf, indent=2, ensure_ascii=False)
+    print(f"Labels.json actualizado con: {rel_path} -> {label}")
 
 if __name__ == '__main__':
     main()
