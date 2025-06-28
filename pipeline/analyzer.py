@@ -3,7 +3,6 @@ import numpy as np
 import json
 
 
-# Funciones inyectadas de lector.py original:
 def get_hand_landmarks(vector: np.ndarray, maxHands: int = 2) -> np.ndarray:
     """
     Dado un vector plano de (3*21*maxHands + 3*468), devuelve un array de forma
@@ -74,20 +73,41 @@ def print_npy(npy_path: str):
     print(f"\n=== Contenido de {npy_path} ===")
     print(arr)
 
+def compute_fluidity(arr: np.ndarray, maxHands: int = 2) -> list:
+    """
+    Calcula la fluidez media de las manos entre frames consecutivos.
+    """
+    fluid = []
+    for i in range(1, arr.shape[0]):
+        prev = get_hand_landmarks(arr[i-1], maxHands)[..., :3]
+        curr = get_hand_landmarks(arr[i],   maxHands)[..., :3]
+        # media de distancias euclidianas por mano
+        dists = [np.mean(np.linalg.norm(curr[h] - prev[h], axis=1)) for h in range(maxHands)]
+        fluid.append(float(np.mean(dists)))
+    return fluid
+
 def analyze_npy(npy_path: str, report_json: bool = True):
     """
     Analiza un archivo .npy específico, genera un reporte JSON con estadísticas globales
     y muestra el análisis del último frame en la consola.
     """
     arr = np.load(npy_path)
-    # Reporte global
+    # Reporte global en español
     report = {
-        'npy_file': os.path.basename(npy_path),
-        'shape': arr.shape,
-        'global_non_zero_ratio': round(float(np.count_nonzero(arr) / arr.size), 4)
+        'archivo_npy': os.path.basename(npy_path),
+        'forma': arr.shape,
+        'ratio_no_ceros_global': round(float(np.count_nonzero(arr) / arr.size), 4)*100,  # en porcentaje
     }
+    # Calcular métricas de fluidez y añadir al reporte
+    fluid = compute_fluidity(arr)
+    if fluid:
+        report['fluidez_media'] = round(float(np.mean(fluid)), 4)*100  # en porcentaje
+        report['fluidez_desviacion']  = round(float(np.std(fluid)),  4)*100  # en porcentaje
+    else:
+        report['fluidez_media'] = 0.0
+        report['fluidez_desviacion'] = 0.0
     if report_json:
-        # Determinar etiqueta y ruta de reportes al mismo nivel de 'features'
+        # Determinar etiqueta y ruta de reportes en data/reports/<label>
         label = os.path.basename(os.path.dirname(npy_path))
         # Carpeta 'data/reports/<label>'
         project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -99,6 +119,8 @@ def analyze_npy(npy_path: str, report_json: bool = True):
         with open(report_path, 'w', encoding='utf-8') as jf:
             json.dump(report, jf, indent=2)
         print(f"✅ Reporte global guardado en: {report_path}")
+        # Mostrar métricas de fluidez en consola
+        print(f"▶ Fluidez media: {report['fluidez_media']:.4f}, desviación estándar: {report['fluidez_desviacion']:.4f}")
     # Análisis del último frame
     analyze_frame(arr, -1)
 
@@ -119,9 +141,35 @@ def analyze_all_features(root_dir: str):
             analyze_npy(npy_path, report_json=True)
 
 if __name__ == '__main__':
+    import sys
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     features_dir = os.path.join(project_root, 'data', 'features')
     if not os.path.isdir(features_dir):
         print(f"No se encontró carpeta de features: {features_dir}")
-        exit(1)
-    analyze_all_features(features_dir)
+        sys.exit(1)
+    # Solicitar ruta específica o analizar último archivo
+    choice = input("Ingrese ruta de archivo .npy para análisis o presione ENTER para usar el último creado: ")
+    if choice:
+        npy_path = choice.strip()
+        if not os.path.isfile(npy_path):
+            print(f"No se encontró el archivo especificado: {npy_path}")
+            sys.exit(1)
+        analyze_npy(npy_path, report_json=True)
+    else:
+        # Encontrar el último .npy creado
+        latest_file = None
+        latest_mtime = 0
+        for root, _, files in os.walk(features_dir):
+            for fname in files:
+                if not fname.endswith('.npy'):
+                    continue
+                path = os.path.join(root, fname)
+                mtime = os.path.getmtime(path)
+                if mtime > latest_mtime:
+                    latest_mtime = mtime
+                    latest_file = path
+        if not latest_file:
+            print(f"No se encontraron archivos .npy en {features_dir}")
+            sys.exit(1)
+        print(f"Analizando último archivo creado: {latest_file}")
+        analyze_npy(latest_file, report_json=True)

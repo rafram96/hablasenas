@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 *.avi
 test_output/
+training/model.joblib

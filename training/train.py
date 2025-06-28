@@ -9,7 +9,7 @@ Script para entrenar el modelo de clasificación de gestos:
 import os
 import json
 import numpy as np
-from src.model import GestureClassifier
+from training.model import GestureClassifier
 
 
 def load_dataset(features_dir: str):
@@ -23,9 +23,16 @@ def load_dataset(features_dir: str):
     with open(labels_path, 'r', encoding='utf-8') as f:
         dataset = json.load(f)
 
+    # Definir raíz del proyecto para rutas relativas
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     X_list, y_list = [], []
     for entry in dataset:
-        npy_path = entry['filename']
+        # Convertir ruta relativa a absoluta si es necesario
+        rel_path = entry['filename']
+        if not os.path.isabs(rel_path):
+            npy_path = os.path.join(project_root, rel_path)
+        else:
+            npy_path = rel_path
         label = entry['label']
         if not os.path.isfile(npy_path):
             print(f"Advertencia: no existe {npy_path}, se omite.")
@@ -48,7 +55,9 @@ def main():
     X, y = load_dataset(features_dir)
     print(f"Dataset cargado: X.shape={X.shape}, y.len={len(y)}")
 
-    clf = GestureClassifier(model_path=os.path.join(project_root, 'model.joblib'))
+    # Crear model.joblib en la carpeta training junto a este script
+    model_file = os.path.join(project_root, 'training', 'model.joblib')
+    clf = GestureClassifier(model_path=model_file)
     clf.train(X, y)
 
     print("Entrenamiento completado.")

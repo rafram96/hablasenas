@@ -1,18 +1,31 @@
+# Asegurar que el proyecto root esté en sys.path
+import os, sys
+sys.path.insert(0, os.path.abspath(os.path.join(__file__, '..', '..')))
+
 import cv2
-from capture import KeypointExtractor
-from recorder import ClipRecorder
+
+
+from src.capture import KeypointExtractor
+from src.recorder import ClipRecorder
 from training.model import GestureClassifier
 
 
 def main():
+    # Definir rutas absolutas
+    project_root = os.path.abspath(os.path.join(__file__, '..', '..'))
+    clips_dir = os.path.join(project_root, 'data', 'clips')
+    model_path = os.path.join(project_root, 'training', 'model.joblib')
+    
     cap = cv2.VideoCapture(0)
     extractor = KeypointExtractor(maxHands=2)
-    recorder = ClipRecorder(output_dir="../data/clips", max_frames=80)
-    classifier = GestureClassifier(model_path="model.joblib")
+    recorder = ClipRecorder(output_dir=clips_dir, max_frames=80)
+    classifier = GestureClassifier(model_path=model_path)
+    # Cargar modelo
     try:
         classifier.load()
-    except Exception:
-        print("No se encontró un modelo entrenado. Ejecuta el entrenamiento primero.")
+    except Exception as e:
+        print(f"Error al cargar modelo: {e}\nEjecuta 'python training/train.py' primero.")
+        sys.exit(1)
     mode = 'translation'
     print("Presiona 't' para traducir, 'r' para grabar clip, 's' para guardar clip, 'q' para salir.")
 
@@ -37,17 +50,28 @@ def main():
         kp = extractor.extract(frame)
         if mode == 'translation':
             try:
-                letter = classifier.predict(kp)
-            except Exception:
-                letter = '?'
-            cv2.putText(frame, str(letter), (50, 50), cv2.FONT_HERSHEY_SIMPLEX,
-                        2, (0, 255, 0), 3)
+                # Asegurar forma 2D y obtener probabilidades
+                feat = kp.reshape(1, -1)
+                probas = classifier.predict_proba(feat)[0]
+                letter = classifier.predict(feat)[0]
+                # Mostrar letra con su confianza máxima en porcentaje
+                treshold = 0.6 
+                confidence = probas.max() * 100
+                if confidence < treshold or len(classifier.pipeline.classes_) < 2:
+                    display_text = '?'
+                else:
+                    display_text = f"{letter} ({confidence:.1f}%)"
+            except Exception as e:
+                print(f"Error en predicción: {e}")
+                display_text = '?'
+            cv2.putText(frame, display_text, (50, 50), cv2.FONT_HERSHEY_SIMPLEX,
+                        1.5, (0, 255, 0), 2)
         elif mode == 'record':
             recorder.add_frame(frame)
             cv2.putText(frame,
                         f"Grabando {len(recorder.frames)}/{recorder.max_frames}",
                         (50, 50), cv2.FONT_HERSHEY_SIMPLEX,
-                        1, (0, 0, 255), 2)
+                        0.8, (0, 0, 255), 1)
 
         cv2.imshow('LSP Translator', frame)
     cap.release()

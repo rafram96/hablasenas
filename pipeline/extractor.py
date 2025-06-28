@@ -57,6 +57,11 @@ def main(
         return
 
     arr = np.stack(samples, axis=0)
+    # Confirmar si se desea descartar la toma antes de guardar
+    choice = input("¿Desea descartar esta toma? Presione 'q' para descartar o ENTER para guardar: ")
+    if choice.lower() == 'q':
+        print("Toma descartada, no se guardará ningun archivo.")
+        return
     # Guardar archivos en carpeta de la etiqueta
     npy_name = f"{label}_{timestamp}.npy"
     json_name = f"{label}_{timestamp}_summary.json"
