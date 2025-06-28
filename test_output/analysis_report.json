@@ -1,8 +1,0 @@
-{
-  "npy_file": "test_output/samples.npy",
-  "shape": [
-    100,
-    1572
-  ],
-  "global_non_zero_ratio": 0.953
-}

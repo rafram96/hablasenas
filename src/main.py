@@ -1,6 +1,6 @@
 import cv2
 from capture import KeypointExtractor
-from clips.recorder import ClipRecorder
+from src.recorder import ClipRecorder
 from model import GestureClassifier
 
 
