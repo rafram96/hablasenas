@@ -1,6 +1,4 @@
 """
-train.py
-
 Script para entrenar el modelo de clasificación de gestos:
 - Carga features (.npy) y etiquetas (labels.json) generados por el pipeline.
 - Construye matrices X (samples × features) e y (labels).
@@ -23,11 +21,9 @@ def load_dataset(features_dir: str):
     with open(labels_path, 'r', encoding='utf-8') as f:
         dataset = json.load(f)
 
-    # Definir raíz del proyecto para rutas relativas
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     X_list, y_list = [], []
     for entry in dataset:
-        # Convertir ruta relativa a absoluta si es necesario
         rel_path = entry['filename']
         if not os.path.isabs(rel_path):
             npy_path = os.path.join(project_root, rel_path)
@@ -38,13 +34,11 @@ def load_dataset(features_dir: str):
             print(f"Advertencia: no existe {npy_path}, se omite.")
             continue
         arr = np.load(npy_path)
-        # Solo dimensions de manos: primer block de hand_dims
-        hand_dims = 2 * 21 * 4  # 168 dims de manos
+        hand_dims = 2 * 21 * 4
         if arr.shape[1] >= hand_dims:
             arr = arr[:, :hand_dims]
         else:
             print(f"Advertencia: arr.shape[1]={arr.shape[1]} < {hand_dims}, usando todas las dimensiones disponibles.")
-        # arr.shape ahora = (num_samples, hand_dims)
         for sample in arr:
             X_list.append(sample)
             y_list.append(label)

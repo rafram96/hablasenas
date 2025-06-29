@@ -1,7 +1,5 @@
-# Asegurar que el proyecto root esté en sys.path
 import os, sys
 sys.path.insert(0, os.path.abspath(os.path.join(__file__, '..', '..')))
-
 import cv2
 from src.capture import KeypointExtractor
 from src.recorder import ClipRecorder
