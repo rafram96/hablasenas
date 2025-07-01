@@ -8,6 +8,7 @@ import os
 import json
 import numpy as np
 from training.model import GestureClassifier
+from sklearn.model_selection import cross_val_score
 
 
 def load_dataset(features_dir: str):
@@ -53,14 +54,21 @@ def main():
     features_dir = os.path.join(project_root, 'data', 'features')
     print(f"Cargando dataset de: {features_dir}")
     X, y = load_dataset(features_dir)
-    print(f"Dataset cargado: X.shape={X.shape}, y.len={len(y)}")
+    print(f"Dataset cargado: X.shape={X.shape}, y.len={len(y)}\n")
 
-    # Crear model.joblib en la carpeta training junto a este script
+    cv = 15  # Folds usar
+
     model_file = os.path.join(project_root, 'training', 'model.joblib')
     clf = GestureClassifier(model_path=model_file)
-    clf.train(X, y)
 
-    print("Entrenamiento completado.")
+    print(f"Ejecutando validación cruzada ({cv}-fold)...")
+    scores = cross_val_score(clf.pipeline, X, y, cv=cv)
+    print(f"Accuracy por pliegue: {scores}")
+    print(f"Media: {scores.mean():.4f}, Desviación: {scores.std():.4f}\n")
 
+    metrics = clf.train(X, y, cv=cv)
+    print("Entrenamiento completado. Métricas finales:")
+    for key, val in metrics.items():
+        print(f"  {key}: {val}")
 if __name__ == '__main__':
     main()

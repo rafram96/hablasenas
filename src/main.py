@@ -5,12 +5,9 @@ from src.capture import KeypointExtractor
 from src.recorder import ClipRecorder
 from training.model import GestureClassifier
 
-
-# Usar solo features de manos: 2 manos ×21 landmarks ×4 valores = 168 dims
 hand_dims = 2 * 21 * 4
 
 def main():
-    # Definir rutas absolutas
     project_root = os.path.abspath(os.path.join(__file__, '..', '..'))
     clips_dir = os.path.join(project_root, 'data', 'clips')
     model_path = os.path.join(project_root, 'training', 'model.joblib')
@@ -19,7 +16,6 @@ def main():
     extractor = KeypointExtractor(maxHands=2)
     recorder = ClipRecorder(output_dir=clips_dir, max_frames=80)
     classifier = GestureClassifier(model_path=model_path)
-    # Cargar modelo
     try:
         classifier.load()
     except Exception as e:
@@ -49,13 +45,12 @@ def main():
         kp = extractor.extract(frame)
         if mode == 'translation':
             try:
-                # Usar solo dims de manos
                 feat = kp[:hand_dims].reshape(1, -1)
                 letter = classifier.predict(feat)[0]
             except Exception as e:
                 print(f"Error en predicción (solo manos): {e}")
                 letter = '?'
-            # Mostrar letra reconocida
+
             cv2.putText(frame, str(letter), (50, 50), cv2.FONT_HERSHEY_SIMPLEX,
                         1.5, (0, 255, 0), 2)
         elif mode == 'record':

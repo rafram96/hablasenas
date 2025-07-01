@@ -10,22 +10,20 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, project_root)
 
 def main(
-    max_samples: int = 100,
+    max_samples: int = 50,
     threshold: float = 0.2
 ):
     while True:
-        # 1) Pedir etiqueta o salir
         label = input("Ingrese etiqueta (letra/palabra) o ENTER para salir: ").strip().lower()
         if not label:
             print("Extracción finalizada.")
             break
 
-        # 2) Preparar carpeta de salida y captura
         label_dir = os.path.join(project_root, 'data', 'features', label)
         os.makedirs(label_dir, exist_ok=True)
         timestamp = time.strftime('%Y%m%d_%H%M%S')
         cap = cv2.VideoCapture(0)
-        extractor = KeypointExtractor(mode=True, maxHands=2, detectionCon=0.2, trackCon=0.2)
+        extractor = KeypointExtractor(mode=True, maxHands=2, detectionCon=0.75, trackCon=0.65)
         samples = []
         print(f"Buscando hasta {max_samples} frames con ≥{threshold*100:.0f}% de detección...")
 
@@ -58,13 +56,11 @@ def main(
 
         arr = np.stack(samples, axis=0)
 
-        # 3) Confirmar guardado o descartar
         choice = input("¿Desea descartar esta toma? Presione 'q' para descartar o ENTER para guardar: ")
         if choice.lower() == 'q':
             print("Toma descartada.")
             continue
 
-        # 4) Guardar .npy y resumen
         npy_name  = f"{label}_{timestamp}.npy"
         json_name = f"{label}_{timestamp}_summary.json"
         path_npy  = os.path.join(label_dir, npy_name)
@@ -90,7 +86,7 @@ def main(
             json.dump(summary, jf, indent=2)
         print(f"Resumen guardado en: {json_path}")
 
-        # 5) Actualizar labels.json
+
         features_root = os.path.join(project_root, 'data', 'features')
         labels_file   = os.path.join(features_root, 'labels.json')
         labels_list   = []

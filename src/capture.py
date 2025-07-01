@@ -25,6 +25,8 @@ class KeypointExtractor:
         )
         self.maxHands = maxHands
 
+
+
     def extract(self, frame):
         image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         res_hands = self.hands.process(image)
@@ -49,24 +51,29 @@ class KeypointExtractor:
                     connection_drawing_spec=mp_drawing_styles.get_default_face_mesh_contours_style()
                 )
         kp = []
+
+
         # Manos: slots fijos [Right, Left] con bit de presencia (x, y, z, p)
         hand_sides = {}
         if res_hands.multi_hand_landmarks and res_hands.multi_handedness:
             for lm_list, hd in zip(res_hands.multi_hand_landmarks, res_hands.multi_handedness):
-                label = hd.classification[0].label  # 'Right' o 'Left'
+                label = hd.classification[0].label
                 hand_sides[label] = lm_list
         for side in ['Right', 'Left']:
             lm_list = hand_sides.get(side)
             if lm_list:
                 for lm in lm_list.landmark:
-                    kp.extend([lm.x, lm.y, lm.z, 1])  # presencia=1
+                    kp.extend([lm.x, lm.y, lm.z, 1])
             else:
                 kp.extend([0.0, 0.0, 0.0, 0] * 21)
+
+
+
         # Cara
         if res_face.multi_face_landmarks:
             face_lm = res_face.multi_face_landmarks[0]
             for lm in face_lm.landmark:
                 kp.extend([lm.x, lm.y, lm.z])
         else:
-            kp.extend([0] * (468 * 3))  # relleno si no detecta
+            kp.extend([0] * (468 * 3))
         return np.array(kp)

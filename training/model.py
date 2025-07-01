@@ -12,20 +12,22 @@ class GestureClassifier:
     """
     def __init__(self,
                  model_path: str = None,
-                 n_estimators: int = 100,
-                 random_state: int = 42):
-        # Determinar ruta del modelo (por defecto en training/model.joblib)
+                 n_estimators: int = 400,
+                 random_state: int = 96):
         if model_path is None:
             project_root = os.path.abspath(
                 os.path.join(os.path.dirname(__file__), '..'))
             model_path = os.path.join(project_root, 'training', 'model.joblib')
         self.model_path = model_path
-        # Pipeline: StandardScaler + RandomForest
+
         self.pipeline = Pipeline([
             ('scaler', StandardScaler()),
             ('rf', RandomForestClassifier(
                 n_estimators=n_estimators, random_state=random_state))
         ])
+
+
+
 
     def train(self, X, y, test_size: float = 0.2, cv: int = 5, save: bool = True):
         """
@@ -39,7 +41,6 @@ class GestureClassifier:
                 'cv_mean_accuracy': float(scores.mean()),
                 'cv_std_accuracy': float(scores.std())
             }
-            # Entrenar final con todo el dataset
             self.pipeline.fit(X, y)
         else:
             X_tr, X_te, y_tr, y_te = train_test_split(
@@ -55,14 +56,15 @@ class GestureClassifier:
             self.save()
         return metrics
 
+
+
     def save(self):
-        """Guarda el pipeline entrenado en disco."""
         os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
         joblib.dump(self.pipeline, self.model_path)
         print(f"✅ Modelo guardado en {self.model_path}")
 
+
     def load(self):
-        """Carga el pipeline entrenado desde disco."""
         if not os.path.isfile(self.model_path):
             raise FileNotFoundError(f"No existe el modelo: {self.model_path}")
         self.pipeline = joblib.load(self.model_path)
